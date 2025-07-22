@@ -1,0 +1,19 @@
+You will be given a hypothesis and analysis plan. 
+You will also be given feedback for these components. Your role is to incorporate that feedback and update these components.
+
+Analysis Hypothesis:
+{hypothesis}
+
+Analysis Plan:
+{analysis_plan}
+
+
+Feedback:
+{feedback}
+
+
+You are given the following summary of the anndata object:
+{data_summary}
+
+Scientific_background:
+{scientific_background}

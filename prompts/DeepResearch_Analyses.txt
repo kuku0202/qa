@@ -1,0 +1,65 @@
+## Molecular Representation
+Purpose: Encode molecules for computational analysis and generation.
+SMILES/SELFIES: Use linear string representations for input/output in sequence models.
+Graph Representations: Atoms as nodes, bonds as edges; used in graph neural networks (GNNs).
+Molecular Fingerprints: Transform molecules into lower-dimensional vectors, Use for similarity, clustering and diversity analysis.
+3D Coordinates: Cartesian coordinates for 3D-aware models and docking.
+Descriptors: Physicochemical properties (e.g., logP, MW, TPSA) as features.
+
+## Generative Model Construction
+Purpose: Build models to generate novel, valid, and preferred feature molecules.
+Variational Autoencoders(VAE): Encode molecules into a latent space and decode to generate new ones.
+GANs: Compete generator/discriminator for realistic molecule creation.
+Reinforcement Learning: Use reward functions to bias generation toward desired properties.
+Language Models: Use transformers, LSTMs, or GPT-like models for sequence-based like SMILES/SELFIES generation.
+Graph-based Generators: Directly generate molecular graphs using GNNs or graph-based VAEs.
+
+## Property Prediction
+Purpose: Predict and evaluate chemical, physical, and biological properties of molecules.
+QSAR Models: Predict activity or properties using machine learning (RF, XGBoost, DNNs).
+ADMET Prediction: Predict Absorption, Distribution, Metabolism, Excretion, and Toxicity.
+Docking/Scoring: Predict binding affinity to protein targets using molecular docking.
+Physicochemical Properties: Calculate logP, MW, H-bond donors/acceptors, TPSA, etc.
+Uncertainty Estimation: Quantify prediction confidence using ensembles or Bayesian methods.
+
+## Molecular Optimization
+Purpose: Improve generated molecules for multiple objectives.
+Multi-objective Optimization: Simultaneously optimize for potency, selectivity, and drug-likeness.
+Bayesian Optimization: Efficiently search latent or chemical space for optimal molecules.
+Genetic Algorithms/Evolutionary Strategies: Evolve populations of molecules via mutation/crossover.
+Gradient-based Optimization: Use differentiable models to optimize molecular representations.
+
+## Diversity, Novelty, and Redundancy Assessment
+Purpose: Ensure generated molecules are novel, diverse, and non-redundant.
+Diversity Metrics: Tanimoto similarity, scaffold diversity, internal diversity.
+Novelty Checks: Compare to known molecules in ChEMBL, ZINC, or internal libraries.
+Redundancy Removal: Cluster and filter out near-duplicates.
+
+## Synthetic Accessibility and Filtering
+Purpose: Assess and filter molecules for synthetic feasibility and safety.
+Synthetic Accessibility Score (SAS): Predict ease of synthesis.
+Retrosynthetic Analysis: Use tools (ASKCOS, AiZynthFinder) to propose synthetic routes.
+Rule-based Filtering: Remove molecules with PAINS, toxicophores, or reactive groups.
+Drug-likeness Filters: Apply Lipinski, Veber, Ghose, or other rules.
+
+## Benchmarking and Validation
+Purpose: Evaluate generative model performance and compare to baselines.
+
+Validity: Fraction of chemically valid molecules generated.
+Uniqueness: Fraction of unique molecules among generated set.
+Novelty: Fraction not present in training data.
+Fréchet ChemNet Distance (FCD): Compare distribution of generated molecules to real molecules.
+GuacaMol/ MOSES Benchmarks: Standardized benchmarks for molecular generation.
+
+## Visualization and Interpretation
+Purpose: Visualize molecules, properties, and model outputs for interpretation.
+2D/3D Structure Plots: Visualize molecules using RDKit, PyMOL, or NGLView.
+Property Distribution Plots: Histograms, scatter plots, and heatmaps of predicted properties.
+Latent Space Visualization: Use t-SNE, UMAP, or PCA to visualize learned molecular embeddings.
+Similarity Maps: Highlight substructures contributing to property predictions.
+
+## Explainability and Attribution
+Purpose: Understand model decisions and highlight important molecular features.
+Feature Attribution: Use SHAP, LIME, or attention weights to interpret predictions.
+Counterfactual Generation: Generate similar molecules with different properties to probe model behavior.
+Saliency Maps: Visualize which atoms/bonds are most influential for predictions. 

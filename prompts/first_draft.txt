@@ -1,0 +1,35 @@
+You will be provided a summary of a research paper, dataset, as well as a set of computational analyses that were previously attempted.
+
+You are given the following summary of the data object:
+{data_summary}
+
+Here are the analyses that have been generated:
+{previous_ideas}
+
+Here is a summary of the research paper:
+{paper_txt}
+
+Come up with a new creative hypothesis or good question for research paper where the paper have not discover and do research, and directions you can feasibly investigate with the data provided.
+
+Respond in the following format:
+THOUGHT:
+<THOUGHT>
+NEW IDEA JSON:
+```json
+<JSON>
+```
+
+IMPORTANT: In <THOUGHT>, use chain-of-thought reasoning to arrive at your analysis plan. show your step-by-step reasoning about the data, paper, previous analyses, gaps, and how your proposed analysis addresses these gaps. Justify how the idea is different from the existing ones.
+
+In <JSON>, provide the new hypothesis with the following field:
+{{
+    "hypothesis": Specific hypothesis about what new insights this analysis will reveal,
+    "analysis_plan": ["Step 1: ...", "Step 2: ...", "Step 3: ..."] - A list of specific implementation steps based on the hypothesis above. 
+    "interestingness": How compelling and impactful the analysis would be, it should be a digit from 0 to 10.
+    "feasibility": How practical and implementable the analysis is, it should be a digit from 0 to 10.
+    "novelty": How original and innovative the approach is, it should be a digit from 0 to 10.
+}}
+
+Be realistic and cautious with your ratings on interestingness, feasibility and novelty.
+This JSON will be automatically parsed, so ensure the format is precise.
+You will have {num_reflections} rounds to iterate on the idea, but do not need to use them all.

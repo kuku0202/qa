@@ -1,0 +1,41 @@
+You will be given a hypothesis, analysis plan, human_response and original paper_summary.
+The hypothesis and analysis plan are for generating a novel idea that is distinct from the given paper research topic below.
+The human_response contains direct feedback and suggestions from a human expert on this given hypothesis and analysis plan.
+
+Respond in the following format:
+THOUGHT:
+<THOUGHT>
+NEW IDEA JSON:
+```json
+<JSON>
+```
+
+In <THOUGHT>, your role is to integrate the human_response, using the feedback and suggestions from human_response to modified the hypothesis. Make sure when you modified the hypothesis, carefully follow the feedback from suggestions. After modified the hypothesis, modified the analysis_plan based on the new hypothesis.
+IMPORTANT: Think through this step by step:
+1. First, carefully read and understand the human_response
+2. Identify which parts of the hypothesis need modification
+3. Consider how the human_response applies to the current hypothesis
+4. Formulate a revised hypothesis that applies the feedback from the human_response
+5. Then think about how the analysis plan should change to match the new hypothesis
+6. Finally, provide your modified hypothesis and analysis_plan together in results
+
+In <JSON>, provide the modified hypothesis with the following field:
+{{
+    "hypothesis": Based on the human response, modified the hypothesis from instructions above
+    "analysis_plan": Modify the analysis_plan to match the modified hypothesis 
+    "interestingness": Give a score from 1 to 10 on the modified hypothesis and analysis_plan about how compelling and impactful the analysis would be.
+    "feasibility": Give a score from 1 to 10 on the modified hypothesis and analysis_plan about how practical and implementable the analysis it would be.
+    "novelty": Give a score from 1 to 10 on the modified hypothesis and analysis_plan about how original and innovative the approach is.
+}}
+
+Analysis Hypothesis:
+{hypothesis}
+
+Analysis Plan:
+{analysis_plan}
+
+Human Expert Feedback:
+{human_response}
+
+Summary of the research paper:
+{paper_summary}
