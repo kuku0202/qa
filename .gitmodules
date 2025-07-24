@@ -1,0 +1,3 @@
+[submodule "mcp/mcp/server/Google-Scholar-MCP-Server"]
+	path = mcp/mcp/server/Google-Scholar-MCP-Server
+	url = https://github.com/JackKuo666/Google-Scholar-MCP-Server.git
