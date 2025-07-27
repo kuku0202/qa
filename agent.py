@@ -22,11 +22,12 @@ import requests
 import csv
 from llm import get_response_from_llm, extract_json_between_markers, AVAILABLE_LLMS
 import os.path as osp
-
+from client import MCPClient
+import asyncio
 # AVAILABLE_PACKAGES = "scanpy, scvi, CellTypist, anndata, matplotlib, numpy, seaborn, pandas, scipy"
 class AnalysisAgent:
     def __init__(self, skip_novelty_check, analysis_name, data_path, paper_path, openai_api_key, model_name, skip_human_response = False, num_ideas = 3, num_critique_steps=3, num_reflections=3, prompt_dir="prompts"):
-        # self.skip_novelty_check = skip_novelty_check
+        self.skip_novelty_check = skip_novelty_check
         self.analysis_name = analysis_name
         self.data_path = data_path
         self.paper_path = paper_path
@@ -361,7 +362,7 @@ Focus on:
 
 Please structure the summary as follows:
 1. Main Objective
-2. Main ideas and hypotheses
+2. Main ideas and hypothesis
 3. Key Methods
 4. Important Findings
 5. Significance results
@@ -435,58 +436,7 @@ Please structure the summary as follows:
         with open(osp.join(self.output_dir, "ideas.json"), "w") as f:
             json.dump(ideas, f, indent=4)
         return ideas
-    
-    # def search_for_papers(query, result_limit=10, engine="semanticscholar") -> Union[None, List[Dict]]:
-    #     if not query:
-    #         return None
-    #     if engine == "semanticscholar":
-    #         rsp = requests.get(
-    #             "https://api.semanticscholar.org/graph/v1/paper/search",
-    #             headers={"X-API-KEY": S2_API_KEY} if S2_API_KEY else {},
-    #             params={
-    #                 "query": query,
-    #                 "limit": result_limit,
-    #                 "fields": "title,authors,venue,year,abstract,citationStyles,citationCount",
-    #             },
-    #         )
-    #         print(f"Response Status Code: {rsp.status_code}")
-    #         print(
-    #             f"Response Content: {rsp.text[:500]}"
-    #         )  # Print the first 500 characters of the response content
-    #         rsp.raise_for_status()
-    #         results = rsp.json()
-    #         total = results["total"]
-    #         time.sleep(1.0)
-    #         if not total:
-    #             return None
-
-    #         papers = results["data"]
-    #         return papers
-    # def go_deep_research(self, analysises):
-    #     for analysis in analysises:
             
-    #     pass
-                
-                    
-                    
-                    
-                    
-
-    # def create_ideas(self):
-    #     past_analyses = ""
-    #     analyses = []
-    #     for analysis_idx in range(self.num_analyses):
-    #         print(f"\n🚀 Starting Analysis {analysis_idx+1}")
-
-    #         analysis = self.generate_initial_analysis(past_analyses)
-
-    #         # modified_analysis = self.get_feedback(analysis, past_analyses, None)
-    #         # summary = modified_analysis["summary"]
-
-    #         past_analyses += f"{analysis['hypothesis']}\n"
-    #         analyses.append()
-
-    #     return analyses
     def critique_step(self, analysis, msg_history):
         # Get human feedback
         human_response = self.get_human_response(analysis)
@@ -567,52 +517,45 @@ Please structure the summary as follows:
             human_response = ""
         
         self.logger.log_action("Human feedback received", human_response)
-        # def get_input():
-        #     print("Please enter your feedback on the hypothesis and analysis plan. Enter 'q' to quit.")
-        #     line = input()
-        #     return line
-        # from langchain_community.tools import HumanInputRun
-        # human_feedback = HumanInputRun(input_func=get_input, description="Use this tool to obtain feedback on the hypothesis and analysis plan.", name="Human Feedback")
         return human_response
-    # def search_for_papers(self, query):
-    #     search = GoogleSerperAPIWrapper(api_key=os.getenv("SERPER_API_KEY"))
-    #     results = search.run(query)
-    #     return results
+
+    async def call_mcp_client(self, query):
+        mcp_client = MCPClient()
+        try:
+            await mcp_client.connect_to_server("/home/yuesu/mail/qa/yuesu/mcp/server/Google-Scholar-MCP-Server/google_scholar_server.py")
+            response = await mcp_client.process_query(query)
+            return response
+        except Exception as e:
+            print(f"Error in MCP client: {e}")
+            return f"Error: {str(e)}"
+        finally:
+            try:
+                await mcp_client.close()
+            except Exception as cleanup_error:
+                print(f"Error during cleanup: {cleanup_error}")
     
-    def check_novelty(self, analysis):
-        novelty_prompt = open(os.path.join(self.prompt_dir, "novelty.txt")).read()
+    async def check_novelty(self, analysis):
+        novelty_prompt = open(os.path.join(self.prompt_dir, "check_novelty.txt")).read()
         novelty_prompt = novelty_prompt.format(
             hypothesis=analysis["hypothesis"],
-            analysis_plan=analysis["analysis_plan"],
-            paper_summary=self.paper_summary,
+            analysis_plan=analysis["analysis_plan"]
         )
-        response, msg_history = get_response_from_llm(
-            msg=novelty_prompt,
-            client=self.client,
-            model=self.model_name,
-            system_message=self.coding_system_prompt["novelty_system_prompt"],
-            msg_history=msg_history
-        )
-        return response
+        
+        mcp_response = await self.call_mcp_client(novelty_prompt)
+        return mcp_response
     
     def run(self):
             # Initial analysis from LLM
         analysis = self.generate_analysis(self.num_ideas, self.num_reflections, self.skip_human_response)
         print(analysis)
-            # hypothesis = analysis["hypothesis"]
-            # analysis_plan = analysis["analysis_plan"]
-            # rationale = analysis["rationale"]
+        
+        if not self.skip_novelty_check:
+            try:
+                check_novelty = asyncio.run(self.check_novelty(analysis[0]))
+                print(check_novelty)
+            except Exception as e:
+                print(f"Error during novelty check: {e}")
             
-            # # Display current analysis for human review
-            # print("\nCurrent Analysis:")
-            # print(f"\nHypothesis: {hypothesis}")
-            # print("\nAnalysis Plan:")
-            # for step in analysis_plan:
-            #     print(f"- {step}")
-            # print(f"\nRationale: {rationale}")
-            # Get feedback and incorporate it (this will handle the iterations internally)
-            
-            # Log final analysis
 
     def normal_analysis_with_llm(self):
         """Perform a simple analysis using ChatGPT without the agent's structured approach"""
@@ -730,22 +673,3 @@ Respond in the following JSON format:
         self.logger.log_action("Comparison analysis completed", "Both analyses saved to output directory")
         
         return comparison_data
-    
-    
-# class GoogleSerperAPIWrapper:
-#     def __init__(self, api_key):
-#         self.api_key = api_key
-#         self.base_url = "https://google.serper.dev/scholar"
-    
-#     def run(self, query, num_results=10):
-#         headers = {
-#             "X-API-KEY": self.api_key,
-#             "Content-Type": "application/json"
-#         }
-#         payload = {
-#             "q": query,
-#             "num": num_results
-#         }
-#         response = requests.post(self.base_url, headers=headers, json=payload)
-#         response.raise_for_status()
-#         return response.json()
