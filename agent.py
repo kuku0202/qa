@@ -26,15 +26,14 @@ from client import MCPClient
 import asyncio
 # AVAILABLE_PACKAGES = "scanpy, scvi, CellTypist, anndata, matplotlib, numpy, seaborn, pandas, scipy"
 class AnalysisAgent:
-    def __init__(self, skip_novelty_check, analysis_name, data_path, paper_path, openai_api_key, model_name, skip_human_response = False, num_ideas = 3, num_critique_steps=3, num_reflections=3, prompt_dir="prompts"):
+    def __init__(self, skip_novelty_check, analysis_name, data_path, given_topic, paper_path, openai_api_key, model_name, skip_human_response = False, num_ideas = 3, num_critique_steps=3, num_reflections=3, prompt_dir="prompts"):
         self.skip_novelty_check = skip_novelty_check
         self.analysis_name = analysis_name
         self.data_path = data_path
+        self.topic = given_topic
         self.paper_path = paper_path
         self.openai_api_key = openai_api_key
         self.model_name = model_name
-        # self.correlative_papers = correlative_papers
-        # self.field_of_study = field_of_study
         self.skip_human_response = skip_human_response
         self.num_ideas = num_ideas
         self.num_critique_steps = num_critique_steps
@@ -58,6 +57,10 @@ class AnalysisAgent:
         )
         
         
+        
+        
+        
+        
         if self.data_path == "":
             self.data_summary = ""
         else:
@@ -66,13 +69,13 @@ class AnalysisAgent:
             self.data_summary = self.summarize_data()
             self.logger.log_action("Data loaded and summarized", self.data_summary)
             print(f"Loaded {self.data_path} and summarized")
-        # end
-        # if self.knowledge_path is None:
-        #     self.knowledge = self.generate_background_knowledge(field_of_study)
-        # else:
-        #     self.knowledge = self.load_knowledge(self.knowledge_path)
-        self.paper = self.load_paper(self.paper_path)
-        self.paper_summary = self.summarize_paper_with_llm(self.paper)
+            
+        if self.paper_path is not None:
+            self.paper = self.load_paper(self.paper_path)
+            self.paper_summary = self.summarize_paper_with_llm(self.paper)
+        else:
+            if self.topic is None:
+                raise ValueError("No topic or paper provided")
         
     def load_data(self, data_path):
         """Load data from a CSV file into a pandas DataFrame"""
@@ -112,50 +115,50 @@ class AnalysisAgent:
                 
         return summarization_str
     
-    def load_knowledge(self, knowledge_path):
-        """
-        Load knowledge about molecular generation from CSV file
+    # def load_knowledge(self, knowledge_path):
+    #     """
+    #     Load knowledge about molecular generation from CSV file
         
-        Args:
-            knowledge_path (str): Path to the CSV file containing molecular generation knowledge
-        """
-        if knowledge_path is None:
-            return "No knowledge file provided"
+    #     Args:
+    #         knowledge_path (str): Path to the CSV file containing molecular generation knowledge
+    #     """
+    #     if knowledge_path is None:
+    #         return "No knowledge file provided"
             
-        try:
-            # Read the CSV file
-            df = pd.read_csv(knowledge_path)
+    #     try:
+    #         # Read the CSV file
+    #         df = pd.read_csv(knowledge_path)
             
-            # Create a structured knowledge string
-            knowledge_str = "Molecular Generation Backgrounds, Methods and Approaches:\n\n"
+    #         # Create a structured knowledge string
+    #         knowledge_str = "Molecular Generation Backgrounds, Methods and Approaches:\n\n"
             
-            # Process each row to create a comprehensive knowledge base
-            for _, row in df.iterrows():
-                # Get the context (paper title/description)
-                context = row['context']
+    #         # Process each row to create a comprehensive knowledge base
+    #         for _, row in df.iterrows():
+    #             # Get the context (paper title/description)
+    #             context = row['context']
                 
-                # Get the analysis titles and full descriptions
-                analyses_titles = eval(row['analyses_titles'])
-                analyses_full = eval(row['analyses_full'])
+    #             # Get the analysis titles and full descriptions
+    #             analyses_titles = eval(row['analyses_titles'])
+    #             analyses_full = eval(row['analyses_full'])
                 
-                # Add to knowledge string
-                knowledge_str += f"Background: {context}\n"
-                knowledge_str += "Key Components:\n"
+    #             # Add to knowledge string
+    #             knowledge_str += f"Background: {context}\n"
+    #             knowledge_str += "Key Components:\n"
                 
-                # Add each analysis component with its description
-                for method in analyses_titles:
-                    knowledge_str += f"- {method}\n"
-                knowledge_str += "\n"
-                for analysis in analyses_full:
-                    knowledge_str += f"- {analysis['title']}: {analysis['description']}\n"
-                knowledge_str += "\n"
+    #             # Add each analysis component with its description
+    #             for method in analyses_titles:
+    #                 knowledge_str += f"- {method}\n"
+    #             knowledge_str += "\n"
+    #             for analysis in analyses_full:
+    #                 knowledge_str += f"- {analysis['title']}: {analysis['description']}\n"
+    #             knowledge_str += "\n"
             
-            self.logger.log_action("Knowledge loaded", f"Loaded knowledge from {knowledge_path}")
-            return knowledge_str
+    #         self.logger.log_action("Knowledge loaded", f"Loaded knowledge from {knowledge_path}")
+    #         return knowledge_str
             
-        except Exception as e:
-            print(f"Error loading knowledge file: {str(e)}")
-            return "No knowledge loaded"
+    #     except Exception as e:
+    #         print(f"Error loading knowledge file: {str(e)}")
+    #         return "No knowledge loaded"
         
     # def generate_background_knowledge(self, field_of_study):
     #     # TODO: generate background knowledge based on field of study, the study famous papers or popular papers
@@ -383,39 +386,82 @@ Please structure the summary as follows:
         except Exception as e:
             print(f"Error generating LLM summary: {str(e)}")
             return paper_text
+        
+    async def search_relevant_paper(self, topic, numbers=5, history=[]):
+        prompt_search_relevant_paper = open(os.path.join(self.prompt_dir, "search_relevant_paper.txt")).read()
+        prompt_search_relevant_paper_formatted = prompt_search_relevant_paper.format(
+            topic=topic,
+            history=history,
+        )
+        mcp_response = await self.call_mcp_client(prompt_search_relevant_paper_formatted)
+        print(f"mcp_response: {mcp_response}")
+        prompt_first_draft_topic = open(os.path.join(self.prompt_dir, "first_draft_topic.txt")).read()
+        prompt_first_draft_topic_formatted = prompt_first_draft_topic.format(
+            topic=topic,
+            resources=mcp_response,
+        )
+        response, history = get_response_from_llm(
+            prompt_first_draft_topic_formatted,
+            client=self.client,
+            model=self.model_name,
+            system_message=self.coding_system_prompt["system_prompt"],
+            msg_history=history
+        )
+        json_output = extract_json_between_markers(response)
+        return json_output, history
+        # for i in range(numbers):
+        #     # Format the prompt with current history to avoid duplicates
+        #     prompt_search_relevant_paper_formatted = prompt_search_relevant_paper.format(
+        #         topic=topic,
+        #         history=history,
+        #     )
+            
+        #     # Get one new paper
+        #     mcp_response = await self.call_mcp_client(prompt_search_relevant_paper_formatted)
+        #     json_output = extract_json_between_markers(mcp_response)
+        #     history.append(json_output)
+        # print(history)
+        # return history
+        
+        
+    
     
     def generate_analysis(self, max_num_generations=5, num_reflections=3, skip_human_response=False):
         previous_ideas = []
-        prompt_first_draft = open(os.path.join(self.prompt_dir, "first_draft.txt")).read()
-        prompt_first_draft = prompt_first_draft.format(
-            # scientific_background=self.knowledge, 
-            data_summary=self.data_summary, 
-            previous_ideas=[], 
-            paper_txt=self.paper_summary,
-            num_reflections=num_reflections,
-        )
+        if self.paper_path is not None:
+            prompt_first_draft = open(os.path.join(self.prompt_dir, "first_draft_paper.txt")).read()
+            prompt_first_draft = prompt_first_draft.format(
+                # scientific_background=self.knowledge, 
+                data_summary=self.data_summary, 
+                previous_ideas=[], 
+                paper_txt=self.paper_summary,
+                num_reflections=num_reflections,
+            )
+            self.logger.log_prompt("user", prompt_first_draft, "Initial Analysis")
         prompt_reflection = open(os.path.join(self.prompt_dir, "reflection.txt")).read()
         
-        self.logger.log_prompt("user", prompt_first_draft, "Initial Analysis")
         for i in range(max_num_generations):
             print(f"Generating idea {i+1}/{max_num_generations}")
             msg_history = []
-            response, msg_history = get_response_from_llm(
-                prompt_first_draft,
-                client=self.client,
-                model=self.model_name,
-                system_message=self.coding_system_prompt["system_prompt"],
-                msg_history=msg_history
-            )
-            json_output = extract_json_between_markers(response)
-            assert json_output is not None, "Failed to extract JSON from LLM output"
-            print(json_output)
+            if self.paper_path is not None:
+                response, msg_history = get_response_from_llm(
+                    prompt_first_draft,
+                    client=self.client,
+                    model=self.model_name,
+                    system_message=self.coding_system_prompt["system_prompt"],
+                    msg_history=msg_history
+                )
+                json_output = extract_json_between_markers(response)
+                assert json_output is not None, "Failed to extract JSON from LLM output"
+                print(json_output)
+            else:
+                json_output, msg_history = asyncio.run(self.search_relevant_paper(self.topic, history=msg_history))
             if num_reflections > 1:
                 for j in range(num_reflections - 1):
                     print(f"Iteration {j + 2}/{num_reflections}")
                     response, msg_history = get_response_from_llm(
                         prompt_reflection.format(
-                            current_round=j + 2, num_reflections=num_reflections
+                            current_round=j + 2, num_reflections=num_reflections, hypothesis=json_output["hypothesis"], analysis_plan=json_output["analysis_plan"]
                         ),
                         client=self.client,
                         model=self.model_name,
@@ -492,9 +538,6 @@ Please structure the summary as follows:
         print("\nAnalysis Plan:")
         for step in analysis['analysis_plan']:
             print(f"- {step}")
-        print(f"\nInterestingness: {analysis['interestingness']}")
-        print(f"\nFeasibility: {analysis['feasibility']}")
-        print(f"\nNovelty: {analysis['novelty']}")
         print("\n" + "-"*50)
         print("Options:")
         print("1. Press Enter when done with feedback")
@@ -557,6 +600,34 @@ Please structure the summary as follows:
                 print(f"Error during novelty check: {e}")
             
 
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
     def normal_analysis_with_llm(self):
         """Perform a simple analysis using ChatGPT without the agent's structured approach"""
         print("="*50)
@@ -592,9 +663,6 @@ Respond in the following JSON format:
 {{
     "hypothesis": "Your specific hypothesis here",
     "analysis_plan": ["Step 1: ...", "Step 2: ...", "Step 3: ..."],
-    "interestingness": "0-10",
-    "feasibility": "0-10",
-    "novelty": "0-10",
 }}
 """
         
